@@ -1,0 +1,89 @@
+---
+title: "Exploratory Data Analysis(EDA) - SKU Cost"
+author: "Victor Carvalho"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(corrplot)
+library(FactoMineR)
+
+```
+
+## Reading Data
+
+```{r}
+# Visualização e leitura das primeiras linhas
+dataframe = read.csv("data/sku_cost", sep=";")
+head(dataframe)
+
+```
+
+## Understanding Data Structure
+
+```{r}
+# Verificação da estrutura dos dados
+str(dataframe)
+
+# Resumo estatístico
+summary(dataframe)
+
+# Descrição das variáveis:
+# - cod_prod: Código do produto.
+# - data_inicio: Data de início do período de observação.
+# - data_fim: Data de término do período de observação.
+# - custo: Custo associado ao produto no período específico.
+```
+
+## Verifying Null Data
+
+```{r}
+sum(is.na(dataframe))
+```
+
+## Univariate Analysis
+
+```{r}
+# Visualização das distribuições
+ggplot(dataframe, aes(x = custo)) + geom_histogram(binwidth = 1) + 
+    labs(title = "Distribuição do Custo", x = "Custo", y = "Frequência")
+
+```
+
+```{r}
+# Identificação de outliers
+ggplot(dataframe, aes(y = custo)) + geom_boxplot() + 
+    labs(title = "Identificação de Outliers no Custo", y = "Custo")
+```
+
+## Bivariate Analysis
+
+```{r}
+# Visualização de relações entre variáveis
+dataframe$duracao <- as.Date(dataframe$data_fim) - as.Date(dataframe$data_inicio)
+ggplot(dataframe, aes(x = duracao, y = custo)) + 
+    geom_point() + 
+    labs(title = "Relação entre Duração e Custo", x = "Duração (dias)", y = "Custo")
+
+```
+
+```{r}
+# Análise de correlação
+correlation <- cor(dataframe[, sapply(dataframe, is.numeric)])
+corrplot(correlation, method = "circle")
+```
+
+## Multivariate Analysis
+
+```{r}
+# PCA
+pca_result <- PCA(dataframe[, sapply(dataframe, is.numeric)], scale.unit = TRUE, ncp = 5)
+
+plot(pca_result, choix = "var")
+```
+
+```{r}
+
+```

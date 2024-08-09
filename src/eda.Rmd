@@ -12,56 +12,66 @@ library(FactoMineR)
 
 ```
 
-## Reading Data
+## 1. Carregamento e Preparação dos Dados (20%)
+
+**Carregamento dos dados (7%)** **Visualização das primeiras linhas (7%)**
 
 ```{r}
-# Visualização e leitura das primeiras linhas
-dataframe = read.csv("data/sku_cost", sep=";")
+dataframe <- read.csv("C:/Users/victo/OneDrive/Documentos/GitHub/r-eda/data/sku_cost.csv", sep=",")
 head(dataframe)
 
 ```
 
-## Understanding Data Structure
+**Verificação da estrutura dos dados (6%)**
 
 ```{r}
-# Verificação da estrutura dos dados
 str(dataframe)
 
-# Resumo estatístico
+```
+
+## 2. Resumo Estatístico e Descrição dos Dados (20%)
+
+**Resumo estatístico (10%)**
+
+```{r}
 summary(dataframe)
 
-# Descrição das variáveis:
-# - cod_prod: Código do produto.
-# - data_inicio: Data de início do período de observação.
-# - data_fim: Data de término do período de observação.
-# - custo: Custo associado ao produto no período específico.
 ```
 
-## Verifying Null Data
+**Descrição das variáveis (10%)**
+
+-   cod_prod: Código do produto.
+-   data_inicio: Data de início do período de observação.
+-   data_fim: Data de término do período de observação.
+-   custo: Custo associado ao produto no período específico.
+
+## 3. Análise Univariada (25%)
+
+**Visualização das distribuições (13%)**
 
 ```{r}
-sum(is.na(dataframe))
-```
-
-## Univariate Analysis
-
-```{r}
-# Visualização das distribuições
 ggplot(dataframe, aes(x = custo)) + geom_histogram(binwidth = 1) + 
     labs(title = "Distribuição do Custo", x = "Custo", y = "Frequência")
 
 ```
 
+**Identificação de outliers (12%)**
+
 ```{r}
-# Identificação de outliers
-ggplot(dataframe, aes(y = custo)) + geom_boxplot() + 
-    labs(title = "Identificação de Outliers no Custo", y = "Custo")
+ggplot(dataframe, aes(x = cod_prod, y = custo)) +
+  geom_point() +
+  labs(title = "Visualização de Outliers no Custo", x = "Código do Produto", y = "Custo")
 ```
 
-## Bivariate Analysis
+Nesse gráfico de dispersão, é possível observar que existem alguns preços que fogem do padrão e podem ser considerados Outliers, já que estão significativamente acima da maioria dos outros pontos, que indicam produtos com custos muito maiores que a maioria dos outros, que se concentram em um intervalo de custo entre 0 e 50 R\$.
+
+Algumas suposições podem justificar esses Outliers, como: - Produtos específicos naturalmente mais caros(Exemplo: Produtos Dior). - Erros de entrada de dados.
+
+## 4. Análise Bivariada (25%)
+
+**Visualização de relações entre variáveis (13%)**
 
 ```{r}
-# Visualização de relações entre variáveis
 dataframe$duracao <- as.Date(dataframe$data_fim) - as.Date(dataframe$data_inicio)
 ggplot(dataframe, aes(x = duracao, y = custo)) + 
     geom_point() + 
@@ -69,21 +79,104 @@ ggplot(dataframe, aes(x = duracao, y = custo)) +
 
 ```
 
+É possível observar uma relação direta entre duração e custo, e que depois de um certo tempo os produtos passam a ter menos registros de custo, ou seja, menos oscilações dessa variável para os produtos.
+
+**Análise de correlação (12%)**
+
 ```{r}
-# Análise de correlação
 correlation <- cor(dataframe[, sapply(dataframe, is.numeric)])
 corrplot(correlation, method = "circle")
 ```
 
-## Multivariate Analysis
+## 5. Análise Multivariada (15%)
+
+**Análise de Componentes Principais (PCA) (10%) - data_inicio e custo**
 
 ```{r}
-# PCA
-pca_result <- PCA(dataframe[, sapply(dataframe, is.numeric)], scale.unit = TRUE, ncp = 5)
+lower_date <- min(dataframe$data_inicio, na.rm = TRUE)
+lower_date
 
-plot(pca_result, choix = "var")
+dataframe$numeric_date <- as.numeric(as.Date(dataframe$data_inicio) - as.Date("2000-03-05"))
+
+normalized_data <- scale(dataframe[, c("numeric_date", "custo")])
+
+pca_result <- prcomp(normalized_data, center = TRUE, scale. = TRUE)
+summary(pca_result)
+
 ```
+
+**Interpretação dos componentes (5%)**
+
+### Standard Deviation (Desvio Padrão)
+
+-   O desvio padrão de uma componente principal (PC) indica a quantidade de variação que essa componente captura dos dados originais.
+-   PC1 tem um desvio padrão de 1.0161, o que significa que ela explica um pouco mais de variação nos dados em comparação à PC2, que tem um desvio padrão de 0.9836.
+-   O desvio padrão maior implica que a componente principal está capturando mais informação da variabilidade total dos dados.
+
+### Proportion of Variance (Proporção da Variância)
+
+-   Esta linha mostra a proporção de variância total dos dados explicada por cada componente principal.
+-   PC1 explica 51.62% da variância total dos dados.
+-   PC2 explica 48.38% da variância total.
+-   Juntas, PC1 e PC2 explicam 100% da variância, o que é comum em uma PCA com duas variáveis originais.
+
+### Cumulative Proportion(Proporção Cumulativa)
+
+-   A proporção cumulativa mostra a soma da variância explicada pelas componentes até aquele ponto.
+-   PC1, isoladamente, explica 51.62% da variância total.
+-   PC1 e PC2, juntas, explicam 100% da variância.
+-   Como você só tem duas componentes principais, a variância total explicada é naturalmente 100% ao considerar ambas as componentes.
+
+**Análise de Componentes Principais (PCA) (10%) - data_inicio, codigo produto e custo**
 
 ```{r}
+dataframe$numeric_date <- as.numeric(as.Date(dataframe$data_inicio) - as.Date("2000-03-05"))
+
+pca_data <- dataframe[, c("numeric_date", "custo", "cod_prod")]
+
+normalized_pca_data <- scale(pca_data)
+
+pca_result <- prcomp(normalized_pca_data, center = TRUE, scale. = TRUE)
+summary(pca_result)
 
 ```
+
+**Interpretação dos componentes (5%)**
+
+### Standard Deviation (Desvio Padrão)
+
+-   O desvio padrão de cada componente principal indica a quantidade de variação dos dados que aquela componente captura.
+-   PC1 tem o maior desvio padrão (1.0469), o que significa que ela captura a maior quantidade de variação dos dados em comparação com PC2 e PC3.
+-   PC2 e PC3 têm desvios padrões menores, indicando que capturam menos variação comparadas a PC1.
+
+### Proportion of Variance (Proporção da Variância)
+
+-   PC1 explica 36.53% da variância total dos dados, sendo a mais importante das três componentes principais.
+-   PC2 explica 32.93% da variância, próxima de PC1.
+-   PC3 explica 30.53% da variância.
+
+### Cumulative Proportion(Proporção Cumulativa)
+
+-   PC1 isoladamente explica 36.53% da variância dos dados.
+-   PC1 e PC2 juntas explicam 69.47% da variância total.
+-   PC1, PC2, e PC3 juntas explicam 100% da variância total, o que é esperado com três componentes principais.
+
+O fato de PC1, PC2, e PC3 explicarem percentuais relativamente próximos de variância sugere que não há uma única componente que domine completamente a estrutura dos dados. Todas as três componentes contribuem de maneira significativa para a variação total.
+
+## 6. Conclusão e Discussão (15%)
+
+**Sumário das descobertas (8%)**
+
+O PCA revelou que as três componentes principais (PC1, PC2 e PC3) explicam toda a variância dos dados, sendo 36.53% da variância explicada por PC1, 32.93% por PC2 e 30.53% por PC3. Isso sugere que a variância nos dados está distribuída entre essas três componentes de maneira relativamente equilibrada, sem uma componente dominante.
+
+Já a análise de outliers, identificou valores extremos no custo, especialmente em relação ao produto representado por seu código de identificação. Esses outliers podem indicar preços anômalos ou erros nos dados que podem exigir uma investigação mais aprofundada.
+
+Por fim, foi possível observar que o mesmo código de produto aparece várias vezes no dataframe, que decorre de mudanças no custo ao longo do tempo. Isso indica que o custo do produto foi ajustado em diferentes momentos, e esses ajustes foram registrados separadamente no conjunto de dados.
+
+**Discussão sobre limitações e possíveis melhorias (7%)**
+
+A natureza dos dados, onde o código do produto e o custo são variáveis numéricas, e as datas de início e fim são variáveis temporais, dificultou a obtenção de insights claros sobre correlações entre as variáveis. A falta de variáveis com relações lineares diretas limitou a profundidade da análise de correlação.
+
+Outro ponto foi a presença de outliers no custo dos produtos, que sugere que pode haver anomalias ou erros nos dados que precisam ser investigados. Uma melhoria futura seria aprofundar a análise desses outliers para entender sua origem e seu impacto nos resultados.
+
+Uma possível melhoria seria a inclusão de variáveis adicionais que possam capturar melhor as características dos produtos e suas variações de custo ao longo do tempo. Além disso, técnicas mais avançadas de análise temporal poderiam ser aplicadas para melhor entender as mudanças nos custos ao longo do tempo.
